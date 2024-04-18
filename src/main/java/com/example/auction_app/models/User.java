@@ -10,12 +10,8 @@ public class User {
     private String address;
     private String phone;
     private Date registrationDate;
-
-    // Constructor gol
     public User() {
     }
-
-    // Constructor complet
     public User(int userID, String email, String password, String name, String address, String phone, Date registrationDate) {
         this.userID = userID;
         this.email = email;
