@@ -1,63 +1,67 @@
 package com.example.auction_app.persistence;
 
 import com.example.auction_app.models.User;
+
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserRepository implements GenericRepository<User> {
-    private Connection connection;
-
-    public UserRepository(Connection connection) {
-        this.connection = connection;
-    }
 
     @Override
-    public void add(User user) {
+    public void add(User user) throws SQLException {
         String sql = "INSERT INTO Users (Email, Password, Name, Address, Phone, RegistrationDate) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            statement.setString(1, user.getEmail());
-            statement.setString(2, user.getPassword());
-            statement.setString(3, user.getName());
-            statement.setString(4, user.getAddress());
-            statement.setString(5, user.getPhone());
-            statement.setTimestamp(6, new Timestamp(user.getRegistrationDate().getTime()));
-            statement.executeUpdate();
-
-            ResultSet rs = statement.getGeneratedKeys();
-            if (rs.next()) {
-                user.setUserID(rs.getInt(1));
-            }
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, user.getEmail());
+            stmt.setString(2, user.getPassword());
+            stmt.setString(3, user.getName());
+            stmt.setString(4, user.getAddress());
+            stmt.setString(5, user.getPhone());
+            stmt.setTimestamp(6, new Timestamp(user.getRegistrationDate().getTime()));
+            stmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw e;
         }
     }
 
     @Override
     public User get(int id) {
         String sql = "SELECT * FROM Users WHERE UserID = ?";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, id);
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                return extractUserFromResultSet(resultSet);
+        User user = null;
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                user = new User(
+                        rs.getInt("UserID"),
+                        rs.getString("Email"),
+                        rs.getString("Password"),
+                        rs.getString("Name"),
+                        rs.getString("Address"),
+                        rs.getString("Phone"),
+                        rs.getTimestamp("RegistrationDate")
+                );
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null;
+        return user;
     }
 
     @Override
     public void update(User user) {
-        String sql = "UPDATE Users SET Email = ?, Password = ?, Name = ?, Address = ?, Phone = ?, RegistrationDate = ? WHERE UserID = ?";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, user.getEmail());
-            statement.setString(2, user.getPassword());
-            statement.setString(3, user.getName());
-            statement.setString(4, user.getAddress());
-            statement.setString(5, user.getPhone());
-            statement.setTimestamp(6, new Timestamp(user.getRegistrationDate().getTime()));
-            statement.setInt(7, user.getUserID());
-            statement.executeUpdate();
+        String sql = "UPDATE Users SET Email = ?, Password = ?, Name = ?, Address = ?, Phone = ? WHERE UserID = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, user.getEmail());
+            stmt.setString(2, user.getPassword());
+            stmt.setString(3, user.getName());
+            stmt.setString(4, user.getAddress());
+            stmt.setString(5, user.getPhone());
+            stmt.setInt(6, user.getUserID());
+            stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -66,9 +70,10 @@ public class UserRepository implements GenericRepository<User> {
     @Override
     public void delete(User user) {
         String sql = "DELETE FROM Users WHERE UserID = ?";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, user.getUserID());
-            statement.executeUpdate();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, user.getUserID());
+            stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -76,27 +81,63 @@ public class UserRepository implements GenericRepository<User> {
 
     @Override
     public int getSize() {
-        String sql = "SELECT COUNT(*) AS count FROM Users";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                return resultSet.getInt("count");
+        String sql = "SELECT COUNT(*) FROM Users";
+        int size = 0;
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                size = rs.getInt(1);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return 0;
+        return size;
     }
-
-    private User extractUserFromResultSet(ResultSet resultSet) throws SQLException {
-        User user = new User();
-        user.setUserID(resultSet.getInt("UserID"));
-        user.setEmail(resultSet.getString("Email"));
-        user.setPassword(resultSet.getString("Password"));
-        user.setName(resultSet.getString("Name"));
-        user.setAddress(resultSet.getString("Address"));
-        user.setPhone(resultSet.getString("Phone"));
-        user.setRegistrationDate(resultSet.getTimestamp("RegistrationDate"));
+    public User getUserByEmail(String email) {
+        String sql = "SELECT * FROM Users WHERE Email = ?";
+        User user = null;
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, email);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                user = new User(
+                        rs.getInt("UserID"),
+                        rs.getString("Email"),
+                        rs.getString("Password"),
+                        rs.getString("Name"),
+                        rs.getString("Address"),
+                        rs.getString("Phone"),
+                        rs.getTimestamp("RegistrationDate")
+                );
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         return user;
+    }
+    public List<User> getAll() {
+        String sql = "SELECT * FROM Users";
+        List<User> users = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                User user = new User(
+                        rs.getInt("UserID"),
+                        rs.getString("Email"),
+                        rs.getString("Password"),
+                        rs.getString("Name"),
+                        rs.getString("Address"),
+                        rs.getString("Phone"),
+                        rs.getTimestamp("RegistrationDate")
+                );
+                users.add(user);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return users;
     }
 }

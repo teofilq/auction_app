@@ -9,7 +9,7 @@ import java.util.Date;
 public class UserRepositoryTest {
     private static Connection connection;
     private static UserRepository userRepository;
-    private final int userIdToDelete = 2;
+    private final int userIdToDelete = 99;
     @BeforeAll
     public static void setup() throws Exception {
         connection = DatabaseConnection.getConnection();
@@ -31,14 +31,13 @@ public class UserRepositoryTest {
     }
     @Test
     public void testAddAndGetUser() {
-        User newUser = new User(0, "test@example.com", "password123", "Test User", "123 Test St", "1234567890", new Date());
+        User newUser = new User(12, "test@examplle.com", "password123", "Test User", "123 Test St", "1234567890", new Date());
         userRepository.add(newUser);
 
         User fetchedUser = userRepository.get(newUser.getUserID());
         assertNotNull(fetchedUser);
         assertEquals(newUser.getEmail(), fetchedUser.getEmail());
 
-        userRepository.delete(fetchedUser);
     }
 
     @Test

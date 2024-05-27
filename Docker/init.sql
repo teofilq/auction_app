@@ -6,7 +6,7 @@ DROP TABLE IF EXISTS Users;
 CREATE TABLE Users (
                        UserID INT AUTO_INCREMENT PRIMARY KEY,
                        Email VARCHAR(255) UNIQUE NOT NULL,
-                       Password VARCHAR(255) NOT NULL,
+                       Password VARCHAR(255),
                        Name VARCHAR(255) NOT NULL,
                        Address VARCHAR(255),
                        Phone VARCHAR(15),
@@ -33,7 +33,7 @@ CREATE TABLE Auctions (
                           StartDate DATETIME DEFAULT CURRENT_TIMESTAMP,
                           EndDate DATETIME,
                           Status ENUM('Active', 'Ended', 'Cancelled') DEFAULT 'Active',
-                          WinnerID INT,
+                          WinnerID INT NULL,
                           FOREIGN KEY (ProductID) REFERENCES Products(ProductID),
                           FOREIGN KEY (WinnerID) REFERENCES Users(UserID)
 );
